@@ -1,0 +1,57 @@
+CREATE DATABASE BankDB;
+USE BankDB;
+SET SQL_SAFE_UPDATES = 0;
+CREATE TABLE accounts (
+    account_id INT PRIMARY KEY AUTO_INCREMENT,
+    account_holder VARCHAR(100),
+    status VARCHAR(20),
+    last_transaction DATE
+);
+INSERT INTO accounts (account_holder, status, last_transaction) 
+VALUES ('John Doe', 'INACTIVE', '2022-09-01'),
+       ('Jane Smith', 'INACTIVE', '2021-10-01'),
+       ('Michael Johnson', 'ACTIVE', '2024-07-15'),
+       ('Emma Watson', 'INACTIVE', '2022-05-10'),
+       ('Robert Brown', 'ACTIVE', '2024-01-01'),
+       ('Lucas Grey', 'INACTIVE', '2021-09-30');
+       
+SELECT * FROM accounts;
+
+DELIMITER $$
+
+CREATE PROCEDURE ActivateInactiveAccounts()
+BEGIN
+    DECLARE v_inactive_count INT;
+    DECLARE v_updated_count  INT DEFAULT 0;
+    DECLARE v_error_message  VARCHAR(100);
+    
+    -- Count the number of inactive accounts before updating
+    SELECT COUNT(*) INTO v_inactive_count 
+    FROM accounts
+    WHERE status = 'INACTIVE' 
+    AND last_transaction < CURDATE() - INTERVAL 365 DAY;
+    
+    -- Update inactive accounts to active using account_id in WHERE clause
+    UPDATE accounts
+    SET status = 'ACTIVE'
+    WHERE status = 'INACTIVE'
+    AND last_transaction < CURDATE() - INTERVAL 365 DAY
+    AND account_id IS NOT NULL;
+    
+    -- Check how many rows were updated
+    SET v_updated_count = ROW_COUNT();
+    
+    -- Display message based on the number of updated accounts
+    IF v_updated_count = 0 THEN
+        SELECT 'No accounts were activated. All accounts are already active or no accounts were inactive.' AS message;
+    ELSE
+        SELECT CONCAT(v_updated_count, ' account(s) successfully activated.') AS message;
+    END IF;
+
+END $$
+
+DELIMITER ;
+CALL ActivateInactiveAccounts();
+SELECT * FROM accounts;
+SET SQL_SAFE_UPDATES = 1;
+DROP DATABASE BankDB;

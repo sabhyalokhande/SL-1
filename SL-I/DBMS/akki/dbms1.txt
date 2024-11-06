@@ -1,0 +1,112 @@
+-- Step 1: Create Tables with Constraints
+
+-- Create a table for Customers
+CREATE TABLE Customer (
+    CustomerID INT AUTO_INCREMENT PRIMARY KEY,  -- Use AUTO_INCREMENT for auto-incrementing CustomerID
+    FirstName VARCHAR(50) NOT NULL,
+    LastName VARCHAR(50) NOT NULL,
+    Email VARCHAR(100) UNIQUE
+);
+
+-- Create a table for Accounts
+CREATE TABLE Account (
+    AccountID INT PRIMARY KEY,
+    CustomerID INT,
+    AccountType VARCHAR(20) CHECK (AccountType IN ('Savings', 'Checking')),
+    Balance DECIMAL(15, 2) DEFAULT 0,
+    FOREIGN KEY (CustomerID) REFERENCES Customer(CustomerID)
+);
+
+-- Create a table for Transactions
+CREATE TABLE Transaction (
+    TransactionID INT PRIMARY KEY,
+    AccountID INT,
+    TransactionType VARCHAR(20) CHECK (TransactionType IN ('Deposit', 'Withdrawal')),
+    Amount DECIMAL(15, 2) NOT NULL,
+    FOREIGN KEY (AccountID) REFERENCES Account(AccountID)
+);
+
+-- Step 2: Create an Index
+CREATE INDEX idx_customer_email ON Customer (Email);
+
+-- Step 3: Create a View to show Customer and Account details
+CREATE VIEW CustomerAccountView AS
+SELECT 
+    c.CustomerID,
+    c.FirstName,
+    c.LastName,
+    a.AccountID,
+    a.AccountType,
+    a.Balance
+FROM 
+    Customer c
+JOIN 
+    Account a ON c.CustomerID = a.CustomerID;
+
+-- Step 4: DML Statements to insert data and run queries
+
+-- Insert sample customers
+INSERT INTO Customer (FirstName, LastName, Email) VALUES
+    ('John', 'Doe', 'johndoe@example.com'),
+    ('Jane', 'Smith', 'janesmith@example.com');
+
+-- Insert sample accounts
+INSERT INTO Account (AccountID, CustomerID, AccountType, Balance) VALUES
+    (1, 1, 'Savings', 1500.00),
+    (2, 2, 'Checking', 500.00);
+
+-- Insert sample transactions
+INSERT INTO Transaction (TransactionID, AccountID, TransactionType, Amount) VALUES
+    (1, 1, 'Deposit', 500.00),
+    (2, 2, 'Withdrawal', 100.00);
+
+-- Step 5: Query to show customer, account, and transaction data
+SELECT * FROM Customer;
+
+SELECT * FROM Account;
+
+SELECT * FROM Transaction;
+
+SELECT * FROM CustomerAccountView;
+
+-- Query 1: Find accounts with balance over 1000
+SELECT * FROM Account WHERE Balance > 1000;
+
+-- Query 2: Count total number of customers
+SELECT COUNT(*) AS TotalCustomers FROM Customer;
+
+-- Query 3: Sum of balances in all accounts
+SELECT SUM(Balance) AS TotalBankBalance FROM Account;
+
+-- Query 4: Display accounts of a specific customer by CustomerID
+SELECT * FROM Account WHERE CustomerID = 1;
+
+-- Query 5: View all transactions for a specific account
+SELECT * FROM Transaction WHERE AccountID = 1;
+
+-- Query 6: Find customers with 'Savings' accounts
+SELECT c.FirstName, c.LastName
+FROM Customer c
+JOIN Account a ON c.CustomerID = a.CustomerID
+WHERE a.AccountType = 'Savings';
+
+-- Step 6: ALTER, DROP, and UPDATE commands
+
+-- Alter a table to add a new column (e.g., PhoneNumber to Customer table)
+ALTER TABLE Customer ADD COLUMN PhoneNumber VARCHAR(15);
+
+-- Update a customer’s email address
+UPDATE Customer
+SET Email = 'johnnydoe@example.com'
+WHERE CustomerID = 1;
+
+-- Drop a column from the Customer table
+ALTER TABLE Customer DROP COLUMN PhoneNumber;
+
+-- Drop the Account table
+DROP TABLE Account;
+
+-- Step 7: Viewing the Index
+
+-- To see the index created on the Customer table
+SHOW INDEX FROM Customer;

@@ -1,0 +1,60 @@
+CREATE TABLE Borrower (
+    Roll_no INT,
+    Name VARCHAR(50),
+    Date_of_Issue DATE,
+    Name_of_Book VARCHAR(100),
+    Status CHAR(1),
+    PRIMARY KEY (Roll_no, Name_of_Book)
+);
+
+CREATE TABLE Fine (
+    Roll_no INT,
+    Date DATE,
+    Amt DECIMAL(10, 2)
+);
+
+-- Insert sample data
+INSERT INTO Borrower (Roll_no, Name, Date_of_Issue, Name_of_Book, Status) VALUES
+(101, 'John Doe', '2024-09-01', 'Book A', 'I'),
+(102, 'Jane Smith', '2024-09-20', 'Book B', 'I');
+
+
+DELIMITER //
+
+CREATE PROCEDURE returnBook(IN roll_no INT, IN book_name VARCHAR(100))
+BEGIN
+    DECLARE days INT;
+    DECLARE fine_amt DECIMAL(10, 2);
+    DECLARE issue_date DATE;
+    DECLARE msg VARCHAR(50);
+
+    -- Fetch Date of Issue
+    SELECT Date_of_Issue INTO issue_date FROM Borrower 
+    WHERE Roll_no = roll_no AND Name_of_Book = book_name;
+
+    -- Calculate Days between issue date and current date
+    SET days = DATEDIFF(CURDATE(), issue_date);
+
+    -- Fine Calculation
+    IF days > 15 AND days <= 30 THEN
+        SET fine_amt = days * 5;
+        INSERT INTO Fine (Roll_no, Date, Amt) VALUES (roll_no, CURDATE(), fine_amt);
+    ELSEIF days > 30 THEN
+        SET fine_amt = days * 50;
+        INSERT INTO Fine (Roll_no, Date, Amt) VALUES (roll_no, CURDATE(), fine_amt);
+    ELSE
+        SET fine_amt = 0;
+    END IF;
+
+    -- Update Book Status to Returned
+    UPDATE Borrower SET Status = 'R' WHERE Roll_no = roll_no AND Name_of_Book = book_name;
+
+    SET msg = IF(fine_amt > 0, CONCAT('Fine recorded: Rs ', fine_amt), 'No fine');
+
+    SELECT msg AS ResultMessage, fine_amt AS FineAmount, days AS DaysHeld;
+END //
+
+DELIMITER ;
+
+-- To run: 
+CALL returnBook(101, 'Book A');

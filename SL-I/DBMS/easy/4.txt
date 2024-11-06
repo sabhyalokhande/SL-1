@@ -1,0 +1,44 @@
+create database student;
+use student;
+create table stud(
+roll INT PRIMARY KEY,
+att INT NOT NULL,
+status VARCHAR(10)
+);
+insert into stud(roll,att,status) values
+(101,56,'d'),
+(102,80,'nd'),
+(103,95,'nd');
+DELIMITER //
+
+CREATE PROCEDURE CheckAttendance(IN roll_number INT)
+BEGIN
+    DECLARE attendance INT;
+    DECLARE student_status VARCHAR(10);
+    DECLARE attendance_exception CONDITION FOR SQLSTATE '45000';
+    
+    -- Handler for exceptions
+    DECLARE CONTINUE HANDLER FOR attendance_exception
+    BEGIN
+        SELECT 'Attendance below 75%, student status set to defaulter!' AS Error;
+    END;
+
+    -- Fetch attendance from stud table
+    SELECT att INTO attendance
+    FROM stud
+    WHERE roll = roll_number;
+
+    -- Check attendance and set status
+    IF attendance < 75 THEN
+        SET student_status = 'd';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Student has less than 75% attendance.';
+    ELSE 
+        SET student_status = 'nd';
+    END IF;
+
+    -- Show student status
+    SELECT student_status AS StudentStatus;
+END //
+
+DELIMITER ;
+CALL CheckAttendance(101);

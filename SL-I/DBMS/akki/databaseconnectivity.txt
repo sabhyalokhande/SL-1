@@ -1,0 +1,62 @@
+//install mysql
+sudo apt update
+sudo apt install mysql-server
+
+//start my sql
+sudo systemctl start mysql
+sudo mysql -u root -p
+
+
+CREATE DATABASE school_db;
+USE school_db;
+
+CREATE TABLE students (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100),
+    age INT
+);
+EXIT;
+
+
+//install python sql connector
+pip install mysql-connector-python
+
+
+//python.py
+import mysql.connector
+
+def connect_db():
+    return mysql.connector.connect(host='localhost', user='root', password='password', database='school_db')
+
+def add_student(name, age): 
+    conn = connect_db()
+    conn.cursor().execute("INSERT INTO students (name, age) VALUES (%s, %s)", (name, age))
+    conn.commit(); conn.close()
+
+def delete_student(student_id):
+    conn = connect_db()
+    conn.cursor().execute("DELETE FROM students WHERE id = %s", (student_id,))
+    conn.commit(); conn.close()
+
+def edit_student(student_id, name, age):
+    conn = connect_db()
+    conn.cursor().execute("UPDATE students SET name = %s, age = %s WHERE id = %s", (name, age, student_id))
+    conn.commit(); conn.close()
+
+def view_students():
+    conn = connect_db()
+    cursor = conn.cursor(); cursor.execute("SELECT * FROM students")
+    for row in cursor.fetchall(): print(row)
+    conn.close()
+
+def main():
+    while True:
+        choice = input("\n1. Add 2. Delete 3. Edit 4. View 5. Exit: ")
+        if choice == '1': add_student(input("Name: "), int(input("Age: ")))
+        elif choice == '2': delete_student(int(input("ID to delete: ")))
+        elif choice == '3': edit_student(int(input("ID: ")), input("New Name: "), int(input("New Age: ")))
+        elif choice == '4': view_students()
+        elif choice == '5': break
+
+if __name__ == "__main__":
+    main()

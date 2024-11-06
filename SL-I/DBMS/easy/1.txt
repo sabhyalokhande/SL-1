@@ -1,0 +1,101 @@
+Here is the complete block of SQL code, demonstrating both **DDL (Data Definition Language)** and **DML (Data Manipulation Language)** statements for creating tables, using views, sequences, indexes, synonyms, inserting and selecting data, and applying operators and functions:
+
+```sql
+-- 1. Create Database
+CREATE DATABASE CompanyDB;
+
+-- 2. Use the Database
+USE CompanyDB;
+
+-- 3. Create Table: Employees
+CREATE TABLE Employees (
+    EmployeeID INT PRIMARY KEY,
+    FirstName VARCHAR(50),
+    LastName VARCHAR(50),
+    Age INT,
+    Salary DECIMAL(10, 2),
+    Department VARCHAR(50)
+);
+
+-- 4. Create Table: Departments
+CREATE TABLE Departments (
+    DepartmentID INT PRIMARY KEY,
+    DepartmentName VARCHAR(50)
+);
+
+-- 5. Add Foreign Key Constraint
+ALTER TABLE Employees
+ADD CONSTRAINT FK_Department FOREIGN KEY (Department) REFERENCES Departments (DepartmentName);
+
+-- 6. Create View for Employees with Salary Greater than 50000
+CREATE VIEW HighSalaryEmployees AS
+SELECT EmployeeID, FirstName, LastName, Salary
+FROM Employees
+WHERE Salary > 50000;
+
+-- 7. Create Index on Salary for Faster Queries
+CREATE INDEX idx_salary ON Employees(Salary);
+
+-- 8. Create Sequence for Auto-Generating Employee IDs
+CREATE SEQUENCE emp_id_seq
+START WITH 1
+INCREMENT BY 1;
+
+-- 9. Create Synonym for the HighSalaryEmployees View
+CREATE SYNONYM ViewEmployees FOR HighSalaryEmployees;
+
+-- 10. Insert Data into Departments Table
+INSERT INTO Departments (DepartmentID, DepartmentName) VALUES (1, 'HR');
+INSERT INTO Departments (DepartmentID, DepartmentName) VALUES (2, 'Engineering');
+
+-- 11. Insert Data into Employees Table Using Sequence for EmployeeID
+INSERT INTO Employees (EmployeeID, FirstName, LastName, Age, Salary, Department)
+VALUES (emp_id_seq.NEXTVAL, 'John', 'Doe', 30, 60000, 'Engineering');
+
+INSERT INTO Employees (EmployeeID, FirstName, LastName, Age, Salary, Department)
+VALUES (emp_id_seq.NEXTVAL, 'Jane', 'Smith', 28, 45000, 'HR');
+
+-- 12. Select All Data from Employees Table
+SELECT * FROM Employees;
+
+-- 13. Select Employees with Salary Greater than 45000
+SELECT * FROM Employees WHERE Salary > 45000;
+
+-- 14. Update Salary of Employee with EmployeeID 1
+UPDATE Employees
+SET Salary = 70000
+WHERE EmployeeID = 1;
+
+-- 15. Delete Employee with EmployeeID 2
+DELETE FROM Employees WHERE EmployeeID = 2;
+
+-- 16. Select Employees Using Set Operators (UNION)
+SELECT FirstName, LastName FROM Employees WHERE Salary > 50000
+UNION
+SELECT FirstName, LastName FROM Employees WHERE Department = 'HR';
+
+-- 17. Select Average Salary for Each Department
+SELECT Department, AVG(Salary) AS AverageSalary
+FROM Employees
+GROUP BY Department;
+
+-- 18. Drop the Employees Table
+DROP TABLE Employees;
+
+-- 19. Drop the HighSalaryEmployees View
+DROP VIEW HighSalaryEmployees;
+
+-- 20. Drop the emp_id_seq Sequence
+DROP SEQUENCE emp_id_seq;
+
+-- 21. Drop the idx_salary Index
+DROP INDEX idx_salary;
+
+-- 22. Drop the ViewEmployees Synonym
+DROP SYNONYM ViewEmployees;
+```
+
+### Explanation:
+- **DDL Statements**: These include `CREATE`, `ALTER`, and `DROP` statements for creating and altering tables, views, indexes, sequences, and synonyms.
+- **DML Statements**: These include `INSERT`, `SELECT`, `UPDATE`, `DELETE` for inserting, querying, updating, and deleting records.
+- **Operators and Functions**: Demonstrates use of SQL operators (`>`, `IN`, `BETWEEN`, `UNION`), aggregation functions (`AVG`), and set operations (`UNION`).

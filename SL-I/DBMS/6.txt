@@ -1,0 +1,346 @@
+##Index ps
+CREATE TABLE N_Roll_Call (
+    student_id NUMBER PRIMARY KEY,
+    student_name VARCHAR2(50),
+    attendance_date DATE
+);
+
+CREATE TABLE O_Roll_Call (
+    student_id NUMBER PRIMARY KEY,
+    student_name VARCHAR2(50),
+    attendance_date DATE
+);
+
+-- Insert data into N_Roll_Call
+INSERT INTO N_Roll_Call (student_id, student_name, attendance_date)
+VALUES (1, 'John Doe', TO_DATE('2024-11-01', 'YYYY-MM-DD'));
+
+INSERT INTO N_Roll_Call (student_id, student_name, attendance_date)
+VALUES (2, 'Jane Smith', TO_DATE('2024-11-02', 'YYYY-MM-DD'));
+
+-- Insert data into O_Roll_Call
+INSERT INTO O_Roll_Call (student_id, student_name, attendance_date)
+VALUES (1, 'John Doe', TO_DATE('2024-11-01', 'YYYY-MM-DD'));
+
+INSERT INTO O_Roll_Call (student_id, student_name, attendance_date)
+VALUES (3, 'Alice Johnson', TO_DATE('2024-11-03', 'YYYY-MM-DD'));
+
+COMMIT;
+
+DECLARE
+    -- Define a parameterized cursor to select rows from N_Roll_Call
+    CURSOR n_roll_cursor(p_student_id NUMBER) IS
+        SELECT student_id, student_name, attendance_date
+        FROM N_Roll_Call
+        WHERE student_id = p_student_id;
+
+    v_student_id N_Roll_Call.student_id%TYPE;
+    v_student_name N_Roll_Call.student_name%TYPE;
+    v_attendance_date N_Roll_Call.attendance_date%TYPE;
+
+BEGIN
+    -- Iterate over each row in N_Roll_Call
+    FOR n_record IN (SELECT student_id, student_name, attendance_date FROM N_Roll_Call) LOOP
+        -- Open the parameterized cursor for the current student_id
+        OPEN n_roll_cursor(n_record.student_id);
+
+        FETCH n_roll_cursor INTO v_student_id, v_student_name, v_attendance_date;
+        
+        -- Check if the student_id already exists in O_Roll_Call
+        IF NOT EXISTS (SELECT 1 FROM O_Roll_Call WHERE student_id = v_student_id) THEN
+            -- If not exists, insert the data into O_Roll_Call
+            INSERT INTO O_Roll_Call (student_id, student_name, attendance_date)
+            VALUES (v_student_id, v_student_name, v_attendance_date);
+        END IF;
+        
+        -- Close the cursor
+        CLOSE n_roll_cursor;
+    END LOOP;
+
+    -- Commit the changes
+    COMMIT;
+    
+    DBMS_OUTPUT.PUT_LINE('Data merged successfully from N_Roll_Call to O_Roll_Call.');
+END;
+/
+
+
+
+##Lab manual ps
+
+### 1. Implicit Cursor
+
+#### Task: Update inactive accounts in a bank and display a message with the number of rows affected.
+
+##### Table Creation and Sample Data
+
+```sql
+CREATE TABLE bank_accounts (
+    account_id NUMBER PRIMARY KEY,
+    last_transaction_date DATE,
+    status VARCHAR2(10)
+);
+
+-- Insert sample data
+INSERT INTO bank_accounts VALUES (1, TO_DATE('2023-01-01', 'YYYY-MM-DD'), 'inactive');
+INSERT INTO bank_accounts VALUES (2, TO_DATE('2024-10-01', 'YYYY-MM-DD'), 'active');
+INSERT INTO bank_accounts VALUES (3, TO_DATE('2022-11-01', 'YYYY-MM-DD'), 'inactive');
+COMMIT;
+```
+
+##### PL/SQL Block using Implicit Cursor
+
+```sql
+DECLARE
+    v_row_count NUMBER;
+BEGIN
+    -- Update accounts that have been inactive for over 365 days
+    UPDATE bank_accounts
+    SET status = 'active'
+    WHERE status = 'inactive' AND last_transaction_date <= SYSDATE - 365;
+    
+    v_row_count := SQL%ROWCOUNT;  -- Get the number of rows affected
+
+    IF SQL%FOUND THEN
+        DBMS_OUTPUT.PUT_LINE(v_row_count || ' account(s) have been activated.');
+    ELSE
+        DBMS_OUTPUT.PUT_LINE('No accounts were updated.');
+    END IF;
+END;
+/
+```
+
+---
+
+### 2. Explicit Cursor
+
+#### Task: Increase the salary of employees with salaries below the average and log these changes.
+
+##### Table Creation and Sample Data
+
+```sql
+CREATE TABLE emp (
+    e_no NUMBER PRIMARY KEY,
+    salary NUMBER(10, 2)
+);
+
+CREATE TABLE increment_salary (
+    e_no NUMBER PRIMARY KEY,
+    salary NUMBER(10, 2)
+);
+
+-- Insert sample data
+INSERT INTO emp VALUES (101, 30000);
+INSERT INTO emp VALUES (102, 40000);
+INSERT INTO emp VALUES (103, 25000);
+INSERT INTO emp VALUES (104, 50000);
+COMMIT;
+```
+
+##### PL/SQL Block using Explicit Cursor
+
+```sql
+DECLARE
+    CURSOR emp_cursor IS
+        SELECT e_no, salary
+        FROM emp
+        WHERE salary < (SELECT AVG(salary) FROM emp);
+
+    v_e_no emp.e_no%TYPE;
+    v_salary emp.salary%TYPE;
+BEGIN
+    OPEN emp_cursor;
+    LOOP
+        FETCH emp_cursor INTO v_e_no, v_salary;
+        EXIT WHEN emp_cursor%NOTFOUND;
+
+        -- Increase the salary by 10%
+        UPDATE emp
+        SET salary = salary * 1.1
+        WHERE e_no = v_e_no;
+
+        -- Log the increment in increment_salary table
+        INSERT INTO increment_salary (e_no, salary)
+        VALUES (v_e_no, v_salary * 1.1);
+    END LOOP;
+    CLOSE emp_cursor;
+
+    DBMS_OUTPUT.PUT_LINE('Salaries updated for employees with below-average salary.');
+END;
+/
+```
+
+---
+
+### 3. Explicit Cursor: Student Detention
+
+#### Task: Mark students as "detained" if their attendance is below 75% and log this in another table.
+
+##### Table Creation and Sample Data
+
+```sql
+CREATE TABLE stud21 (
+    roll NUMBER(4) PRIMARY KEY,
+    att NUMBER(4),
+    status VARCHAR2(1)
+);
+
+CREATE TABLE d_stud (
+    roll NUMBER(4) PRIMARY KEY,
+    att NUMBER(4)
+);
+
+-- Insert sample data
+INSERT INTO stud21 VALUES (1001, 70, NULL);
+INSERT INTO stud21 VALUES (1002, 80, NULL);
+INSERT INTO stud21 VALUES (1003, 60, NULL);
+COMMIT;
+```
+
+##### PL/SQL Block using Explicit Cursor
+
+```sql
+DECLARE
+    CURSOR stud_cursor IS
+        SELECT roll, att
+        FROM stud21
+        WHERE att < 75;
+
+    v_roll stud21.roll%TYPE;
+    v_att stud21.att%TYPE;
+BEGIN
+    OPEN stud_cursor;
+    LOOP
+        FETCH stud_cursor INTO v_roll, v_att;
+        EXIT WHEN stud_cursor%NOTFOUND;
+
+        -- Update the student's status to 'D'
+        UPDATE stud21
+        SET status = 'D'
+        WHERE roll = v_roll;
+
+        -- Log the detained student in d_stud table
+        INSERT INTO d_stud (roll, att)
+        VALUES (v_roll, v_att);
+    END LOOP;
+    CLOSE stud_cursor;
+
+    DBMS_OUTPUT.PUT_LINE('Students with attendance below 75% have been marked as detained.');
+END;
+/
+```
+
+---
+
+### 4. Parameterized Cursor: Merging Roll Call Data
+
+#### Task: Merge data from `N_RollCall` to `O_RollCall`, skipping duplicates.
+
+##### Table Creation and Sample Data
+
+```sql
+CREATE TABLE N_RollCall (
+    student_id NUMBER PRIMARY KEY,
+    student_name VARCHAR2(50),
+    attendance_date DATE
+);
+
+CREATE TABLE O_RollCall (
+    student_id NUMBER PRIMARY KEY,
+    student_name VARCHAR2(50),
+    attendance_date DATE
+);
+
+-- Insert sample data
+INSERT INTO N_RollCall VALUES (1, 'John Doe', TO_DATE('2024-11-01', 'YYYY-MM-DD'));
+INSERT INTO N_RollCall VALUES (2, 'Jane Smith', TO_DATE('2024-11-02', 'YYYY-MM-DD'));
+
+INSERT INTO O_RollCall VALUES (1, 'John Doe', TO_DATE('2024-11-01', 'YYYY-MM-DD'));
+COMMIT;
+```
+
+##### PL/SQL Block using Parameterized Cursor
+
+```sql
+DECLARE
+    CURSOR roll_cursor(p_student_id NUMBER) IS
+        SELECT student_id, student_name, attendance_date
+        FROM N_RollCall
+        WHERE student_id = p_student_id;
+
+    v_student_id N_RollCall.student_id%TYPE;
+    v_student_name N_RollCall.student_name%TYPE;
+    v_attendance_date N_RollCall.attendance_date%TYPE;
+BEGIN
+    FOR rec IN (SELECT * FROM N_RollCall) LOOP
+        OPEN roll_cursor(rec.student_id);
+        FETCH roll_cursor INTO v_student_id, v_student_name, v_attendance_date;
+
+        IF NOT EXISTS (SELECT 1 FROM O_RollCall WHERE student_id = v_student_id) THEN
+            INSERT INTO O_RollCall (student_id, student_name, attendance_date)
+            VALUES (v_student_id, v_student_name, v_attendance_date);
+        END IF;
+
+        CLOSE roll_cursor;
+    END LOOP;
+
+    DBMS_OUTPUT.PUT_LINE('Data merged from N_RollCall to O_RollCall.');
+END;
+/
+```
+
+---
+
+### 5. Parameterized Cursor: Insert Average Salary by Department
+
+#### Task: Calculate and insert department-wise average salary into a new table.
+
+##### Table Creation and Sample Data
+
+```sql
+CREATE TABLE EMP (
+    e_no NUMBER PRIMARY KEY,
+    d_no NUMBER,
+    salary NUMBER(10, 2)
+);
+
+CREATE TABLE dept_salary (
+    d_no NUMBER PRIMARY KEY,
+    Avg_salary NUMBER(10, 2)
+);
+
+-- Insert sample data
+INSERT INTO EMP VALUES (1, 101, 50000);
+INSERT INTO EMP VALUES (2, 101, 55000);
+INSERT INTO EMP VALUES (3, 102, 60000);
+INSERT INTO EMP VALUES (4, 102, 45000);
+COMMIT;
+```
+
+##### PL/SQL Block using Parameterized Cursor
+
+```sql
+DECLARE
+    CURSOR dept_cursor(p_d_no NUMBER) IS
+        SELECT AVG(salary) AS Avg_salary
+        FROM EMP
+        WHERE d_no = p_d_no;
+
+    v_d_no EMP.d_no%TYPE;
+    v_avg_salary dept_salary.Avg_salary%TYPE;
+BEGIN
+    FOR rec IN (SELECT DISTINCT d_no FROM EMP) LOOP
+        OPEN dept_cursor(rec.d_no);
+        FETCH dept_cursor INTO v_avg_salary;
+        
+        -- Insert the average salary by department
+        INSERT INTO dept_salary (d_no, Avg_salary)
+        VALUES (rec.d_no, v_avg_salary);
+
+        CLOSE dept_cursor;
+    END LOOP;
+
+    DBMS_OUTPUT.PUT_LINE('Department-wise average salaries have been inserted.');
+END;
+/
+```

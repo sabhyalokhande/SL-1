@@ -1,0 +1,145 @@
+create database dbms2; use dbms2; 
+-- Create tables 
+CREATE TABLE cust_mstr (     cust_no INT PRIMARY KEY,     fname VARCHAR(50), 
+    lname VARCHAR(50) 
+); 
+ 
+CREATE TABLE add_dets (     code_no INT PRIMARY KEY,     add1 VARCHAR(100),     add2 VARCHAR(100),     state VARCHAR(50),     city VARCHAR(50),     pincode VARCHAR(10), 
+    FOREIGN KEY (code_no) REFERENCES cust_mstr(cust_no) 
+); 
+ 
+CREATE TABLE acc_fd_cust_dets (     codeno INT PRIMARY KEY, 
+    acc_fd_no INT, 
+    FOREIGN KEY (codeno) REFERENCES cust_mstr(cust_no) 
+); 
+ 
+CREATE TABLE fd_dets (     fd_sr_no INT PRIMARY KEY, 
+    amt DECIMAL(10, 2) 
+); 
+ 
+CREATE TABLE emp_mstr (     emp_no INT PRIMARY KEY,     f_name VARCHAR(50),     l_name VARCHAR(50),     m_name VARCHAR(50),     dept VARCHAR(50),     desg VARCHAR(50),     branch_no INT 
+); 
+ 
+CREATE TABLE branch_mstr (     name VARCHAR(50),     b_no INT PRIMARY KEY, 
+    pincode VARCHAR(10)  -- Added pincode field for branch locations 
+
+); 
+ 
+
+CREATE TABLE cntc_dets (     code_no INT PRIMARY KEY,     cntc_type VARCHAR(50),     cntc_data VARCHAR(100), 
+    FOREIGN KEY (code_no) REFERENCES emp_mstr(emp_no) 
+); 
+ 
+CREATE TABLE borrower (     roll_no INT PRIMARY KEY,     name VARCHAR(50), 
+    book_name VARCHAR(100) 
+); 
+ 
+CREATE TABLE depositor (     dep_id INT PRIMARY KEY, 
+    roll_no INT, 
+    FOREIGN KEY (roll_no) REFERENCES borrower(roll_no) 
+); 
+ 
+-- Insert sample data 
+INSERT INTO cust_mstr (cust_no, fname, lname) VALUES (1, 'xyz', 'pqr'); 
+INSERT INTO add_dets (code_no, add1, add2, state, city, pincode)  
+VALUES (1, '123 Main St', 'Apt 4B', 'StateName', 'CityName', '12345'); 
+ 
+INSERT INTO cust_mstr (cust_no, fname, lname) VALUES (2, 'John', 'Doe'); 
+INSERT INTO acc_fd_cust_dets (codeno, acc_fd_no) VALUES (2, 1001); 
+INSERT INTO fd_dets (fd_sr_no, amt) VALUES (1001, 6000); 
+ 
+INSERT INTO emp_mstr (emp_no, f_name, l_name, m_name, dept, desg, branch_no) VALUES  
+(1, 'Alice', 'Smith', 'John', 'IT', 'Developer', 101), 
+(2, 'Bob', 'Brown', 'Mike', 'Finance', 'Analyst', 102); 
+ 
+INSERT INTO branch_mstr (name, b_no, pincode) VALUES  
+('Main Branch', 101, '12345'), 
+('Secondary Branch', 102, '67890'); 
+ 
+INSERT INTO cntc_dets (code_no, cntc_type, cntc_data) VALUES  
+(1, 'Email', 'alice.smith@example.com'), 
+(2, 'Phone', '555-1234'); 
+ 
+INSERT INTO borrower (roll_no, name, book_name) VALUES  
+(1, 'Alice', 'Book1'); 
+ 
+INSERT INTO depositor (dep_id, roll_no) VALUES  
+(1, 1); 
+-- Queries 
+ 
+-- 1. Retrieve the address of customer Fname 'xyz' and Lname 'pqr' 
+SELECT a.add1, a.add2, a.state, a.city, a.pincode 
+FROM cust_mstr c 
+JOIN add_dets a ON c.cust_no = a.code_no 
+WHERE c.fname = 'xyz' AND c.lname = 'pqr'; 
+ 
+-- 2. List customers holding fixed deposits > 5000 
+SELECT c.fname, c.lname 
+FROM cust_mstr c 
+JOIN acc_fd_cust_dets a ON c.cust_no = a.codeno 
+JOIN fd_dets f ON a.acc_fd_no = f.fd_sr_no 
+WHERE f.amt > 5000; 
+ 
+
+
+-- 3. List employee details along with branch names 
+
+SELECT e.emp_no, e.f_name, e.l_name, e.m_name, e.dept, e.desg, b.name AS branch_name 
+
+FROM emp_mstr e 
+JOIN branch_mstr b ON e.branch_no = b.b_no; 
+ 
+-- 4. List employee details along with contact details 
+-- Left Outer Join 
+SELECT e.emp_no, e.f_name, e.l_name, c.cntc_type, c.cntc_data 
+FROM emp_mstr e 
+LEFT JOIN cntc_dets c ON e.emp_no = c.code_no; 
+ 
+-- Right Outer Join 
+SELECT e.emp_no, e.f_name, e.l_name, c.cntc_type, c.cntc_data 
+FROM emp_mstr e 
+RIGHT JOIN cntc_dets c ON e.emp_no = c.code_no; 
+ 
+-- 5. List customers who do not have bank branches in their vicinity 
+SELECT c.fname, c.lname 
+FROM cust_mstr c 
+JOIN add_dets a ON c.cust_no = a.code_no 
+LEFT JOIN branch_mstr b ON a.pincode = b.pincode 
+WHERE b.b_no IS NULL; 
+ 
+-- 6. Create and work with views 
+ 
+-- a) Create View on borrower table 
+CREATE OR REPLACE VIEW borrower_view AS 
+SELECT roll_no, name 
+FROM borrower; 
+ 
+-- Insert into view 
+INSERT INTO borrower_view (roll_no, name) VALUES (2, 'Bob'); 
+ 
+-- Update view 
+UPDATE borrower_view 
+SET name = 'Charlie' 
+WHERE roll_no = 2; 
+ 
+-- Delete from view 
+DELETE FROM borrower_view 
+WHERE roll_no = 2; 
+ 
+-- b) Create View on Borrower and Depositor Tables 
+CREATE OR REPLACE VIEW borrower_depositor_view AS 
+SELECT b.roll_no, d.dep_id 
+FROM borrower b 
+JOIN depositor d ON b.roll_no = d.roll_no; 
+ 
+-- Insert into view (requires underlying tables to be updated) 
+INSERT INTO borrower (roll_no, name, book_name) VALUES (3, 'Dave', 'Book2'); INSERT INTO depositor (dep_id, roll_no) VALUES (2, 3); 
+
+
+ 
+-- Update view 
+UPDATE borrower_depositor_view 
+
+SET dep_id = 3 
+WHERE roll_no = 3; 
+ 

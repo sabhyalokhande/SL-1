@@ -1,0 +1,309 @@
+##Index PS
+-- Step 1: Create the tables
+CREATE TABLE Borrower (
+    Roll_no INT PRIMARY KEY,
+    Name VARCHAR2(50),
+    Date_of_Issue DATE,
+    Name_of_Book VARCHAR2(100),
+    Status CHAR(1) CHECK (Status IN ('I', 'R'))
+);
+
+CREATE TABLE Fine (
+    Roll_no INT,
+    Date DATE,
+    Amt NUMBER(10, 2),
+    FOREIGN KEY (Roll_no) REFERENCES Borrower(Roll_no)
+);
+
+-- Step 2: Insert sample data into Borrower table
+INSERT INTO Borrower VALUES (1, 'Alice', TO_DATE('2024-10-01', 'YYYY-MM-DD'), 'Data Science 101', 'I');
+INSERT INTO Borrower VALUES (2, 'Bob', TO_DATE('2024-10-10', 'YYYY-MM-DD'), 'Machine Learning', 'I');
+INSERT INTO Borrower VALUES (3, 'Charlie', TO_DATE('2024-09-20', 'YYYY-MM-DD'), 'Deep Learning Basics', 'I');
+
+-- Step 3: Create PL/SQL procedure to calculate fine and update book status
+CREATE OR REPLACE PROCEDURE Process_Return (
+    p_Roll_no IN INT,
+    p_Name_of_Book IN VARCHAR2
+) IS
+    v_Date_of_Issue DATE;
+    v_Status CHAR(1);
+    v_Days NUMBER;
+    v_Fine NUMBER(10, 2);
+    v_FineAmount NUMBER(10, 2);
+
+    -- Custom exception for book not found
+    ex_book_not_found EXCEPTION;
+    ex_invalid_status EXCEPTION;
+
+BEGIN
+    -- Retrieve book details from Borrower table
+    SELECT Date_of_Issue, Status INTO v_Date_of_Issue, v_Status
+    FROM Borrower
+    WHERE Roll_no = p_Roll_no AND Name_of_Book = p_Name_of_Book;
+
+    -- Check if the book has already been returned
+    IF v_Status = 'R' THEN
+        RAISE ex_invalid_status;
+    END IF;
+
+    -- Calculate the number of days since the book was issued
+    v_Days := TRUNC(SYSDATE - v_Date_of_Issue);
+
+    -- Calculate fine based on the number of days
+    IF v_Days > 15 THEN
+        IF v_Days <= 30 THEN
+            v_FineAmount := v_Days * 5;
+        ELSE
+            v_FineAmount := (30 * 5) + ((v_Days - 30) * 50);
+        END IF;
+
+        -- Insert fine details into the Fine table
+        INSERT INTO Fine (Roll_no, Date, Amt) VALUES (p_Roll_no, SYSDATE, v_FineAmount);
+    END IF;
+
+    -- Update the Borrower table to mark the book as returned
+    UPDATE Borrower
+    SET Status = 'R'
+    WHERE Roll_no = p_Roll_no AND Name_of_Book = p_Name_of_Book;
+
+    -- Commit the transaction
+    COMMIT;
+
+    DBMS_OUTPUT.PUT_LINE('Book return processed successfully.');
+    IF v_Days > 15 THEN
+        DBMS_OUTPUT.PUT_LINE('Fine amount: Rs ' || v_FineAmount);
+    ELSE
+        DBMS_OUTPUT.PUT_LINE('No fine applied.');
+    END IF;
+
+-- Exception handling
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('Error: Book not found.');
+    WHEN ex_invalid_status THEN
+        DBMS_OUTPUT.PUT_LINE('Error: Book has already been returned.');
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+END Process_Return;
+/
+
+-- Test the procedure by providing roll number and book name
+BEGIN
+    Process_Return(1, 'Data Science 101');
+END;
+/
+
+
+## Lab manual ps
+---
+
+### 1. **Student Attendance Check**
+
+**Table Structure:**
+
+```sql
+-- Create table Stud
+CREATE TABLE Stud (
+    Roll INT PRIMARY KEY,
+    Att NUMBER(5, 2),
+    Status CHAR(2)
+);
+
+-- Insert sample data into Stud
+INSERT INTO Stud VALUES (1, 80, NULL);
+INSERT INTO Stud VALUES (2, 70, NULL);
+INSERT INTO Stud VALUES (3, 90, NULL);
+```
+
+**PL/SQL Block:**
+
+```sql
+DECLARE
+    v_Roll INT := &Enter_Roll_Number;
+    v_Att NUMBER(5, 2);
+    v_Status CHAR(2);
+
+    -- Exception for student not found
+    ex_student_not_found EXCEPTION;
+BEGIN
+    -- Fetch attendance of the student
+    SELECT Att INTO v_Att
+    FROM Stud
+    WHERE Roll = v_Roll;
+
+    -- Check attendance and update status
+    IF v_Att < 75 THEN
+        UPDATE Stud SET Status = 'D' WHERE Roll = v_Roll;
+        DBMS_OUTPUT.PUT_LINE('Term not granted');
+    ELSE
+        UPDATE Stud SET Status = 'ND' WHERE Roll = v_Roll;
+        DBMS_OUTPUT.PUT_LINE('Term granted');
+    END IF;
+
+    COMMIT;
+
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('Error: Student not found.');
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+END;
+/
+```
+
+---
+
+### 2. **Account Balance Check with User-Defined Exception**
+
+**Table Structure:**
+
+```sql
+-- Create table account_master
+CREATE TABLE account_master (
+    Account_no INT PRIMARY KEY,
+    Balance NUMBER(10, 2)
+);
+
+-- Insert sample data into account_master
+INSERT INTO account_master VALUES (1001, 5000);
+INSERT INTO account_master VALUES (1002, 10000);
+INSERT INTO account_master VALUES (1003, 2000);
+```
+
+**PL/SQL Block:**
+
+```sql
+DECLARE
+    v_Account_no INT := &Enter_Account_Number;
+    v_Withdrawal NUMBER(10, 2) := &Enter_Withdrawal_Amount;
+    v_Balance NUMBER(10, 2);
+
+    -- User-defined exception for insufficient balance
+    ex_insufficient_balance EXCEPTION;
+BEGIN
+    -- Fetch the current balance
+    SELECT Balance INTO v_Balance
+    FROM account_master
+    WHERE Account_no = v_Account_no;
+
+    -- Check if withdrawal is possible
+    IF v_Withdrawal > v_Balance THEN
+        RAISE ex_insufficient_balance;
+    ELSE
+        -- Deduct the withdrawal amount
+        UPDATE account_master
+        SET Balance = Balance - v_Withdrawal
+        WHERE Account_no = v_Account_no;
+        
+        DBMS_OUTPUT.PUT_LINE('Withdrawal successful. New balance: ' || (v_Balance - v_Withdrawal));
+    END IF;
+
+    COMMIT;
+
+EXCEPTION
+    WHEN ex_insufficient_balance THEN
+        DBMS_OUTPUT.PUT_LINE('Error: Insufficient balance for withdrawal.');
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('Error: Account not found.');
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+END;
+/
+```
+
+---
+
+### 3. **Library Fine Calculation**
+
+**Table Structure:**
+
+```sql
+-- Create tables Borrower and Fine
+CREATE TABLE Borrower (
+    Roll_no INT PRIMARY KEY,
+    Name VARCHAR2(50),
+    Date_of_Issue DATE,
+    Name_of_Book VARCHAR2(100),
+    Status CHAR(1) CHECK (Status IN ('I', 'R'))
+);
+
+CREATE TABLE Fine (
+    Roll_no INT,
+    Date DATE,
+    Amt NUMBER(10, 2),
+    FOREIGN KEY (Roll_no) REFERENCES Borrower(Roll_no)
+);
+
+-- Insert sample data into Borrower
+INSERT INTO Borrower VALUES (1, 'Alice', TO_DATE('2024-10-01', 'YYYY-MM-DD'), 'Data Science 101', 'I');
+INSERT INTO Borrower VALUES (2, 'Bob', TO_DATE('2024-10-10', 'YYYY-MM-DD'), 'Machine Learning', 'I');
+INSERT INTO Borrower VALUES (3, 'Charlie', TO_DATE('2024-09-20', 'YYYY-MM-DD'), 'Deep Learning Basics', 'I');
+```
+
+**PL/SQL Block:**
+
+```sql
+DECLARE
+    p_Roll_no INT := &Enter_Roll_Number;
+    p_Name_of_Book VARCHAR2(100) := '&Enter_Book_Name';
+    v_Date_of_Issue DATE;
+    v_Status CHAR(1);
+    v_Days NUMBER;
+    v_FineAmount NUMBER(10, 2) := 0;
+
+    -- Exception for book not found
+    ex_book_not_found EXCEPTION;
+    ex_already_returned EXCEPTION;
+
+BEGIN
+    -- Retrieve book details from Borrower table
+    SELECT Date_of_Issue, Status INTO v_Date_of_Issue, v_Status
+    FROM Borrower
+    WHERE Roll_no = p_Roll_no AND Name_of_Book = p_Name_of_Book;
+
+    -- Check if the book has already been returned
+    IF v_Status = 'R' THEN
+        RAISE ex_already_returned;
+    END IF;
+
+    -- Calculate the number of days since the book was issued
+    v_Days := TRUNC(SYSDATE - v_Date_of_Issue);
+
+    -- Calculate fine based on the number of days
+    IF v_Days > 15 THEN
+        IF v_Days <= 30 THEN
+            v_FineAmount := v_Days * 5;
+        ELSE
+            v_FineAmount := (30 * 5) + ((v_Days - 30) * 50);
+        END IF;
+
+        -- Insert fine details into the Fine table
+        INSERT INTO Fine (Roll_no, Date, Amt) VALUES (p_Roll_no, SYSDATE, v_FineAmount);
+    END IF;
+
+    -- Update the Borrower table to mark the book as returned
+    UPDATE Borrower
+    SET Status = 'R'
+    WHERE Roll_no = p_Roll_no AND Name_of_Book = p_Name_of_Book;
+
+    COMMIT;
+
+    DBMS_OUTPUT.PUT_LINE('Book return processed successfully.');
+    IF v_Days > 15 THEN
+        DBMS_OUTPUT.PUT_LINE('Fine amount: Rs ' || v_FineAmount);
+    ELSE
+        DBMS_OUTPUT.PUT_LINE('No fine applied.');
+    END IF;
+
+-- Exception handling
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('Error: Book not found.');
+    WHEN ex_already_returned THEN
+        DBMS_OUTPUT.PUT_LINE('Error: Book has already been returned.');
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+END;
+/
+```
+
