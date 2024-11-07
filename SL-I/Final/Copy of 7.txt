@@ -1,0 +1,150 @@
+//install mysql
+sudo apt update
+sudo apt install mysql-server
+
+//start my sql
+sudo systemctl start mysql
+
+
+
+sudo mysql -u root -p
+
+CREATE DATABASE school_db;
+USE school_db;
+
+CREATE TABLE students (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100),
+    age INT
+);
+EXIT;
+
+sudo apt install python3 python3-pip
+
+//install python sql connector
+pip3 install mysql-connector-python
+
+SELECT user, host, plugin FROM mysql.user WHERE user = 'root';
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'your_new_password';
+FLUSH PRIVILEGES;
+
+//python.py
+import mysql.connector
+
+def connect_db():
+    return mysql.connector.connect(host='localhost', user='root', password='password', database='school_db')
+
+def add_student(name, age): 
+    conn = connect_db()
+    conn.cursor().execute("INSERT INTO students (name, age) VALUES (%s, %s)", (name, age))
+    conn.commit(); conn.close()
+
+def delete_student(student_id):
+    conn = connect_db()
+    conn.cursor().execute("DELETE FROM students WHERE id = %s", (student_id,))
+    conn.commit(); conn.close()
+
+def edit_student(student_id, name, age):
+    conn = connect_db()
+    conn.cursor().execute("UPDATE students SET name = %s, age = %s WHERE id = %s", (name, age, student_id))
+    conn.commit(); conn.close()
+
+def view_students():
+    conn = connect_db()
+    cursor = conn.cursor(); cursor.execute("SELECT * FROM students")
+    for row in cursor.fetchall(): print(row)
+    conn.close()
+
+def main():
+    while True:
+        choice = input("\n1. Add 2. Delete 3. Edit 4. View 5. Exit: ")
+        if choice == '1': add_student(input("Name: "), int(input("Age: ")))
+        elif choice == '2': delete_student(int(input("ID to delete: ")))
+        elif choice == '3': edit_student(int(input("ID: ")), input("New Name: "), int(input("New Age: ")))
+        elif choice == '4': view_students()
+        elif choice == '5': break
+
+if __name__ == "__main__":
+    main()
+    
+    
+    
+    
+    
+    
+Steps to Resolve the Issue:
+1. Check the Current Password Policy
+
+To determine the current password policy in MySQL, log into the MySQL shell:
+
+sudo mysql -u root
+
+Then, check the password validation settings by running:
+
+SHOW VARIABLES LIKE 'validate_password%';
+
+This will show something like:
+
++------------------------+----------------------+
+| Variable_name          | Value                |
++------------------------+----------------------+
+| validate_password_length | 8                    |
+| validate_password_mixed_case_count | 1                |
+| validate_password_number_count | 1                 |
+| validate_password_policy | MEDIUM               |
++------------------------+----------------------+
+
+You can see that the validate_password_policy is likely set to MEDIUM or STRONG, which is why your password is being rejected.
+2. Changing the Password Policy
+
+If you want to allow simpler passwords (for example, passwords that don't include a mix of uppercase letters, numbers, or special characters), you can adjust the password policy to LOW. This will allow weaker passwords.
+
+To change the password policy to LOW, run the following command in the MySQL shell:
+
+SET GLOBAL validate_password.policy = LOW;
+
+You can also change other settings like password length or number requirements, depending on your needs:
+
+SET GLOBAL validate_password.length = 6;  -- Minimum password length (default is 8)
+SET GLOBAL validate_password.mixed_case_count = 0;  -- Disables case requirements
+SET GLOBAL validate_password.number_count = 0;  -- Disables number requirements
+
+3. Set the Password Again
+
+After modifying the password policy, you can attempt to set your root password again:
+
+ALTER USER 'root'@'localhost' IDENTIFIED BY 'your_new_password';
+
+Make sure to replace 'your_new_password' with a strong password (e.g., password123, but ideally, use a secure password in production).
+4. Flush Privileges
+
+After changing the password policy or setting a new password, always run the following to ensure the changes are applied:
+
+FLUSH PRIVILEGES;
+
+5. Verify the Change
+
+To verify that the password has been updated and the new password policy is in place, you can log out of MySQL:
+
+EXIT;
+
+Then, try logging in using the new password:
+
+mysql -u root -p
+
+Enter the new password when prompted. You should now be able to log in successfully.
+6. Revert Password Policy to Default (Optional)
+
+If you want to revert the password policy back to its default (MEDIUM or STRONG) after setting your password, you can run the following:
+
+SET GLOBAL validate_password.policy = MEDIUM;  -- or STRONG
+
+Summary
+
+    Change password policy: Lower the password strength requirements using SET GLOBAL validate_password.policy = LOW.
+    Set the password: Use a password that meets the new policy or adjust the settings to allow simpler passwords.
+    Flush privileges: Always run FLUSH PRIVILEGES after changes.
+    Revert settings: If needed, you can revert back to stricter password policies after successfully setting the password.
+
+Let me know if this resolves the issue or if you encounter any other problems!
+

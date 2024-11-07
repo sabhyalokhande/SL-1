@@ -1,0 +1,63 @@
+create database rollcall;
+use rollcall;
+
+CREATE TABLE N_RollCall (
+    ID INT PRIMARY KEY,
+    Name VARCHAR(100),
+    Status VARCHAR(20)
+);
+
+CREATE TABLE O_RollCall (
+    ID INT PRIMARY KEY,
+    Name VARCHAR(100),
+    Status VARCHAR(20)
+);
+
+INSERT INTO N_RollCall (ID, Name, Status) VALUES (1, 'richa', 'Present');
+INSERT INTO N_RollCall (ID, Name, Status) VALUES (2, 'aisha', 'Absent');
+INSERT INTO N_RollCall (ID, Name, Status) VALUES (3, 'deepika', 'Present');
+
+
+INSERT INTO O_RollCall (ID, Name, Status) VALUES (2, 'aisha', 'Absent');
+INSERT INTO O_RollCall (ID, Name, Status) VALUES (4, 'heli', 'Absent');
+
+SELECT * FROM O_RollCall;
+SELECT * FROM N_RollCall;
+
+DELIMITER $$
+
+CREATE PROCEDURE MergeRollCall()
+BEGIN
+    DECLARE done INT DEFAULT 0;
+    DECLARE v_id INT;
+    DECLARE v_name VARCHAR(100);
+    DECLARE v_status VARCHAR(20);
+    
+   
+    DECLARE c_RollCall CURSOR FOR 
+        SELECT ID, Name, Status FROM N_RollCall;
+    
+    
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+
+ 
+    OPEN c_RollCall;
+
+   
+    read_loop: LOOP
+        FETCH c_RollCall INTO v_id, v_name, v_status;
+        IF done THEN
+            LEAVE read_loop;
+        END IF;
+
+        
+        IF NOT EXISTS (SELECT 1 FROM O_RollCall WHERE ID = v_id) THEN
+            INSERT INTO O_RollCall (ID, Name, Status) VALUES (v_id, v_name, v_status);
+        END IF;
+    END LOOP;
+
+  
+    CLOSE c_RollCall;
+END$$
+
+DELIMITER ;

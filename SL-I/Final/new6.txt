@@ -1,0 +1,76 @@
+-- Create Database and Use it
+CREATE DATABASE IF NOT EXISTS rollcall;
+USE rollcall;
+
+-- Create N_RollCall Table
+CREATE TABLE IF NOT EXISTS N_RollCall (
+    ID INT PRIMARY KEY,
+    Name VARCHAR(100),
+    Status VARCHAR(20)
+);
+
+-- Create O_RollCall Table
+CREATE TABLE IF NOT EXISTS O_RollCall (
+    ID INT PRIMARY KEY,
+    Name VARCHAR(100),
+    Status VARCHAR(20)
+);
+
+-- Insert sample data into N_RollCall
+INSERT INTO N_RollCall (ID, Name, Status) 
+VALUES 
+(1, 'richa', 'Present'),
+(2, 'aisha', 'Absent'),
+(3, 'deepika', 'Present');
+
+-- Insert sample data into O_RollCall
+INSERT INTO O_RollCall (ID, Name, Status) 
+VALUES 
+(2, 'aisha', 'Absent'),
+(4, 'heli', 'Absent');
+
+-- Start of PL/SQL Block
+
+DELIMITER //
+
+CREATE PROCEDURE ROLL_CALL()
+BEGIN
+    DECLARE done INT DEFAULT 0;
+    DECLARE v_id INT;
+    DECLARE v_name VARCHAR(100);
+    DECLARE v_status VARCHAR(20);
+    DECLARE status_filter VARCHAR(20);  -- Parameterized input
+    DECLARE c_RollCall CURSOR FOR 
+        SELECT ID, Name, Status 
+        FROM N_RollCall 
+        WHERE Status = status_filter;  -- Filtering by status
+
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+
+    -- Set the value for the status filter. You can change this or use it as an input argument.
+    SET status_filter = 'Present';  -- Example: Change 'Present' to 'Absent' if needed.
+
+    -- Open the cursor
+    OPEN c_RollCall;
+
+    -- Loop through the records from the cursor
+    read_loop: LOOP
+        FETCH c_RollCall INTO v_id, v_name, v_status;
+        IF done THEN
+            LEAVE read_loop;
+        END IF;
+
+        -- Insert into O_RollCall if the record does not already exist
+        IF NOT EXISTS (SELECT 1 FROM O_RollCall WHERE ID = v_id) THEN
+            INSERT INTO O_RollCall (ID, Name, Status) 
+            VALUES (v_id, v_name, v_status);
+        END IF;
+    END LOOP;
+
+    -- Close the cursor
+    CLOSE c_RollCall;
+END//
+
+DELIMITER ;
+
+CALL ROLL_CALL();
